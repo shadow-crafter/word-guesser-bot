@@ -1,29 +1,31 @@
-from sentence_transformers import SentenceTransformer, util
+from gensim.models import KeyedVectors
+import gensim.downloader as api
+import numpy as np
 
-VOCAB = []
 
-with open("vocab_list.txt", "r") as f:
-    for l in f:
-        VOCAB.append(l.strip().lower())
+def guess_next_word(model: KeyedVectors,word_list: list[str], ignore_list: list[str]) -> tuple[str | None, float]:
+    words_to_exclude = set(word_list).union(ignore_list)
 
-print(VOCAB[:10])
+    embeddings = [model[w] for w in word_list if w in model]
+    if not embeddings:
+        return None, 0.0
 
-def find_similar_word(word_list: list[str]):
-    excluded = set(word_list)
+    cluster_center = np.mean(embeddings, axis=0)
+    similar_words: list[tuple[str, float]] = model.most_similar(positive=[cluster_center], topn=10)
 
-    model = SentenceTransformer('all-MiniLM-L6-v2')
-    hint_embeddings = model.encode(word_list, convert_to_tensor=True)
+    for word, score in similar_words:
+        if word not in words_to_exclude:
+            return word, score
 
-    cluster_center = hint_embeddings.mean(dim=0)
+    return None, 0.0
 
-    vocab_to_search = [w for w in VOCAB if w not in excluded]
-    vocab_embeddings = model.encode(vocab_to_search, convert_to_tensor=True)
+model: KeyedVectors = api.load("word2vec-google-news-300") # type: ignore
 
-    sim = util.pytorch_cos_sim(cluster_center, vocab_embeddings)[0]
-    best_idx = sim.argmax()
-
-    return vocab_to_search[best_idx]
-
-words = ["school", "student", "apple", "playground"]
-guess = find_similar_word(words)
-print(f"Guessed word: {guess}")
+target = "teacher"
+guess = ""
+guesses = ["apple", "school", "person"]
+while guess != target:
+    guess, confidence = guess_next_word(model, guesses, [])
+    if guess:
+        guesses.append(guess)
+        print(f"Guessed word: {guess} (confidence: {confidence:.2f})")
