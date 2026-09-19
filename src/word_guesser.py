@@ -20,6 +20,7 @@ class WordGuesser:
 
         for word, score in similar_words:
             if word not in words_to_exclude:
+                self.already_guessed.append(word)
                 return word, score
 
         return None, 0.0
