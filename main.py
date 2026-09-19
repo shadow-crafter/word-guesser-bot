@@ -4,6 +4,8 @@ import pytesseract
 import re
 from pathlib import Path
 import pyautogui
+import pydirectinput
+import random
 import time
 from src.area_selector import AreaSelector
 from src.word_guesser import WordGuesser
@@ -42,7 +44,9 @@ def get_words_in_region(screenshot) -> list[str]:
 
 
 def input_word(word: str) -> None:
-    pass
+    pydirectinput.typewrite(word, 0.05)
+    time.sleep(0.1 + random.random() * 0.2)
+    pydirectinput.press("enter")
 
 
 def bot_loop() -> None:
@@ -58,9 +62,11 @@ def bot_loop() -> None:
     while True:
         screenshot = pyautogui.screenshot("logs/region_screenshot.png", region=word_region)
         words = get_words_in_region(screenshot)
+        print(f"Words found: {words}")
         guess, confidence = guesser.guess_next_word(words)
         if guess:
             print(f"Guessed word: {guess} (confidence: {confidence:.2f})")
+            input_word(guess)
 
 
 def main():
