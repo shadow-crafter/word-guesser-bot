@@ -16,7 +16,7 @@ class WordGuesser:
             return None, 0.0
 
         cluster_center = np.mean(embeddings, axis=0)
-        similar_words: list[tuple[str, float]] = self.model.most_similar(positive=[cluster_center], topn=50)
+        similar_words: list[tuple[str, float]] = self.model.most_similar(positive=[cluster_center], topn=150)
 
         for word, score in similar_words:
             if word[0].isupper():
@@ -31,6 +31,10 @@ class WordGuesser:
             if word not in self.valid_words:
                 continue
 
-            return word, score
+            if score < 0.6 and len(word_list) > 1:
+                new_word_list = word_list[:-1]
+                return self.guess_next_word(new_word_list, ignore)
+            else:
+                return word, score
 
         return None, 0.0

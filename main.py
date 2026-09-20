@@ -59,8 +59,9 @@ def get_words_in_region(screenshot) -> list[str]:
 
 
 def input_word(word: str) -> None:
-    pydirectinput.typewrite(word, 0.05)
-    time.sleep(0.1 + random.random() * 0.2)
+    pydirectinput.PAUSE = 0.01
+    pydirectinput.typewrite(word, 0.01)
+    time.sleep(0.35 + random.random() * 0.2)
     pydirectinput.press("enter")
 
 
@@ -79,13 +80,16 @@ def bot_loop() -> None:
     while True:
         screenshot = np.array(pyautogui.screenshot("logs/region_screenshot.png", region=word_region))
         words = get_words_in_region(screenshot)
+        if len(words) == 0: # game probably ended
+            already_guessed = []
+
         print(f"Words found: {words}")
         guess, confidence = guesser.guess_next_word(words, already_guessed)
         if guess:
             print(f"Guessed word: {guess} (confidence: {confidence:.2f})")
             input_word(guess)
             already_guessed.append(guess)
-        time.sleep(1)
+        time.sleep(0.3)
 
 
 def main():
