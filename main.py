@@ -25,19 +25,22 @@ def get_word_region() -> tuple | None:
 
 def get_words_in_region(screenshot) -> list[str]:
     img_resized = cv2.resize(screenshot, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
-    gray = cv2.cvtColor(np.array(img_resized), cv2.COLOR_BGR2GRAY)
+    hsv = cv2.cvtColor(img_resized, cv2.COLOR_BGR2HSV)
+    _, s, v = cv2.split(hsv)
+    
+    # strip away panels with image wizardry idk man
+    white_text_mask = (s < 60) & (v > 160)
+    binary = np.where(white_text_mask, np.uint8(255), np.uint8(0))
 
-    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-    enhanced = clahe.apply(gray)
+    inverted = cv2.bitwise_not(binary)
 
-    _, thresh = cv2.threshold(enhanced, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    thresh = cv2.bitwise_not(thresh)
-
-    cv2.imshow("debug", thresh)
+    cv2.imwrite("logs/region_screenshot_processed.png", inverted)
+    cv2.imshow("debug", inverted)
     cv2.waitKey()
 
     config = r'--psm 6 -c tessedit_char_whitelist=abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
-    raw_text = pytesseract.image_to_string(thresh, config=config)
+
+    raw_text = pytesseract.image_to_string(inverted, config=config)
 
     words = re.findall(r'\b[a-zA-Z]{2,}\b', raw_text)
     return words
@@ -52,13 +55,17 @@ def input_word(word: str) -> None:
 def bot_loop() -> None:
     Path("logs/").mkdir(parents=True, exist_ok=True)
 
-    guesser = WordGuesser()
+    #guesser = WordGuesser()
 
     word_region = get_word_region()
     if word_region == None:
         return
 
     time.sleep(1)
+    screenshot = np.array(pyautogui.screenshot("logs/region_screenshot.png", region=word_region))
+    words = get_words_in_region(screenshot)
+    print(f"Words found: {words}")
+    """
     while True:
         screenshot = pyautogui.screenshot("logs/region_screenshot.png", region=word_region)
         words = get_words_in_region(screenshot)
@@ -66,7 +73,7 @@ def bot_loop() -> None:
         guess, confidence = guesser.guess_next_word(words)
         if guess:
             print(f"Guessed word: {guess} (confidence: {confidence:.2f})")
-            input_word(guess)
+            input_word(guess)"""
 
 
 def main():
