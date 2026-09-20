@@ -10,6 +10,17 @@ import time
 from src.area_selector import AreaSelector
 from src.word_guesser import WordGuesser
 
+VALID_WORDS = []
+with open("valid_words.txt", "r") as f:
+    valid = []
+    for l in f:
+        valid.append(l.strip().lower())
+    VALID_WORDS = set(valid)
+
+
+def is_real_word(word: str) -> bool:
+    return word.lower() in VALID_WORDS
+
 
 def get_word_region() -> tuple | None:
     input("Press enter when you are ready to select the area to look for the words.")
@@ -43,6 +54,7 @@ def get_words_in_region(screenshot) -> list[str]:
     raw_text = pytesseract.image_to_string(inverted, config=config)
 
     words = re.findall(r'\b[a-zA-Z]{2,}\b', raw_text)
+    words = [word for word in words if is_real_word(word)]
     return words
 
 
