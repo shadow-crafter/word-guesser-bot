@@ -4,23 +4,33 @@ import numpy as np
 
 
 class WordGuesser:
-    def __init__(self) -> None:
+    def __init__(self, valid_words: set[str]) -> None:
         self.model: KeyedVectors = api.load("word2vec-google-news-300") # type: ignore
-        self.already_guessed = []
+        self.valid_words = valid_words
 
-    def guess_next_word(self, word_list: list[str]) -> tuple[str | None, float]:
-        words_to_exclude = set(word_list).union(self.already_guessed)
+    def guess_next_word(self, word_list: list[str], ignore: list[str]) -> tuple[str | None, float]:
+        words_to_exclude = set(word_list).union(ignore)
 
         embeddings = [self.model[w] for w in word_list if w in self.model]
         if not embeddings:
             return None, 0.0
 
         cluster_center = np.mean(embeddings, axis=0)
-        similar_words: list[tuple[str, float]] = self.model.most_similar(positive=[cluster_center], topn=10)
+        similar_words: list[tuple[str, float]] = self.model.most_similar(positive=[cluster_center], topn=50)
 
         for word, score in similar_words:
-            if word not in words_to_exclude:
-                self.already_guessed.append(word)
-                return word, score
+            if word[0].isupper():
+                continue
+
+            if word in words_to_exclude:
+                continue
+
+            if "_" in word or not word.isalpha(): #filter out compound words
+                continue
+
+            if word not in self.valid_words:
+                continue
+
+            return word, score
 
         return None, 0.0
